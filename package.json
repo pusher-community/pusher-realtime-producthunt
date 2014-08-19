@@ -15,5 +15,13 @@
   "bugs": {
     "url": "https://github.com/pusher/realtime-producthunt/issues"
   },
-  "homepage": "https://github.com/pusher/realtime-producthunt"
+  "homepage": "https://github.com/pusher/realtime-producthunt",
+  "dependencies": {
+    "request": "~2.40.0",
+    "underscore": "~1.6.0",
+    "express": "~4.8.5",
+    "errorhandler": "~1.1.1",
+    "body-parser": "~1.6.5",
+    "pusher": "~1.0.1"
+  }
 }
