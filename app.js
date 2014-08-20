@@ -76,6 +76,17 @@ app.use(bodyParser.json());
 //   res.json(output);
 // });
 
+// Retrieve latest posts
+app.get("/posts", function(req, res) {
+  var listings = [];
+
+  if (previousListingsFull.length > 0) {
+    listings = previousListingsFull.slice(0, 49);
+  }
+
+  res.json(listings);
+});
+
 // Sentry
 // app.use(raven.middleware.express(ravenClient));
 
@@ -105,6 +116,9 @@ var scrapeTimer;
 var scrapeRequest;
 var etag;
 var lastId;
+var previousListings = [];
+var previousListingsFull = [];
+var scrapeTimeout = 2000;
 
 var stats = {
   overall: {
@@ -136,7 +150,7 @@ var getNewListings = function(callback) {
   };
 
   if (etag) {
-    options.headers["If-None-Match"] = etag;
+    options.headers["If-None-Match"] = etag.replace('"', '');
   }
 
   if (!silent) console.log("Requesting new listings");
@@ -152,13 +166,15 @@ var getNewListings = function(callback) {
       return;
     }
     
-    // Re-authenticate
+    // Non-200 response
     if (response.statusCode && response.statusCode != 200) {
       if (!silent) console.log("Not HTTP 200 on /v1/posts");
       if (!silent) console.log("Status code: " + response.statusCode);
       setImmediate(callback);
       return;
     }
+
+    var etagPrev = etag;
 
     if (!response.headers["etag"]) {
       if (!silent) console.log("ETag header not found on /v1/posts");
@@ -169,12 +185,29 @@ var getNewListings = function(callback) {
       etag = response.headers["etag"];
     }
 
+    if (etag == etagPrev) {
+      if (!silent) console.log("ETag header is identical to last request, ignoring content");
+      setImmediate(callback);
+      return;
+    }
+
     try {
       if (body.posts && body.posts.length > 0) {
-        console.log(body.posts.length);
-        // processListings(body.posts);
+        // Sort by ID - oldest to newest
+        body.posts.sort(function(a, b) {
+          if (a.id < b.id) {
+            return -1;
+          }
 
-        // Check this is actually the last ID, or is it the first?
+          if (a.id > b.id) {
+            return 1;
+          }
+
+          return 0;
+        });
+
+        processListings(body.posts);
+        
         lastId = body.posts[0].id;
       }
     } catch(e) {
@@ -198,7 +231,7 @@ var scrapeListings = function() {
       if (!silent) console.log("Starting scrape timer");
       scrapeTimer = setTimeout(function() {
         scrapeListings();
-      }, 2000);
+      }, scrapeTimeout);
     });
   } catch(e) {
     if (!silent) console.log("Error");
@@ -206,31 +239,70 @@ var scrapeListings = function() {
 
     scrapeTimer = setTimeout(function() {
       scrapeListings();
-    }, 2000);
+    }, scrapeTimeout);
   };
 };
 
+// TODO: Identify and process changes in comments and upvotes
+// As per: https://github.com/producthunt/producthunt-api/issues/8#issuecomment-52677116
+var processListings = function(listings) {
+  if (!silent) console.log("processListings()");
+
+  var count = 0;
+
+  _.each(listings, function(listing, index) {
+    // Look for existing listing
+    if (previousListings.length === 0 || previousListings.indexOf(listing.id) < 0) {
+      if (!silent) console.log("Adding listing to previous listings");
+      
+      previousListings.unshift(listing.id);
+      previousListingsFull.unshift(listing);
+
+      // Cap previous listings
+      if (previousListings.length > 200) {
+        if (!silent) console.log("Cropping previous listings");
+        previousListings.splice(199);
+        previousListingsFull.splice(199);
+      }
+
+      if (!silent) console.log("Triggering message on Pusher");
+      pusher.trigger(["ph-posts"], "new-post", listing);
+      count++;
+    }
+  });
+
+  // Current time for stats
+  var statsTime = new Date();
+
+  // New minute
+  if (!stats.overall.past24.lastTime || stats.overall.past24.lastTime.getHours() != statsTime.getHours()) {
+    if (!silent) console.log("Adding to new stats minute");
+
+    stats.overall.past24.data.unshift(count);
+    stats.overall.past24.total += count;
+
+    // Crop array to last 24 hours
+    if (stats.overall.past24.data.length > 24) {
+      if (!silent) console.log("Cropping stats array for past 24 hours");
+
+      // Crop
+      var removed = stats.overall.past24.data.splice(23);
+
+      // Update total
+      _.each(removed, function(value) {
+        stats.overall.past24.total -= value;
+      });
+    }
+
+    stats.overall.past24.lastTime = statsTime;
+  } else {
+    // Add to most recent minute
+    if (!silent) console.log("Adding to existing stats minute");
+    stats.overall.past24.data[0] += count;
+    stats.overall.past24.total += count;
+  }
+
+  if (!silent) console.log(count + " new listings");
+};
+
 scrapeListings();
-
-
-// var options = {
-//   url: "https://api.producthunt.com/v1/posts?" + Date.now(),
-//   // method: "HEAD",
-//   auth: {
-//     bearer: config.producthunt_token
-//   },
-//   json: true,
-//   timeout: 10000
-// };
-
-// request(options, function(error, response, body) {
-//   if (error) {
-//     if (!silent) console.log("GET /posts request error");
-//     console.log(error);
-//     return;
-//   }
-
-//   console.log(response.headers);
-//   console.log(new Date(body.posts[0].created_at), body.posts[0].name);
-//   console.log(new Date(body.posts[body.posts.length-1].created_at), body.posts[body.posts.length-1].name);
-// });
