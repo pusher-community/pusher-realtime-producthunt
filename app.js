@@ -17,6 +17,9 @@ try {
   }
 }
 
+var raven = require("raven");
+var ravenClient = new raven.Client(config.sentry_dsl);
+
 var express = require("express");
 var bodyParser = require("body-parser");
 var errorHandler = require("errorhandler");
@@ -25,10 +28,10 @@ var app = express();
 
 
 // --------------------------------------------------------------------
-// EXCEPTION HANDLER
+// SENTRY
 // --------------------------------------------------------------------
 
-process.on('uncaughtException', function(err) {
+ravenClient.patchGlobal(function(sentryStatus, err) {
   if (!silent) console.log("Attempting to restart scraper");
 
   if (!silent) console.log("Aborting previous request");
@@ -38,6 +41,22 @@ process.on('uncaughtException', function(err) {
 
   scrapeListings();
 });
+
+
+// --------------------------------------------------------------------
+// EXCEPTION HANDLER
+// --------------------------------------------------------------------
+
+// process.on('uncaughtException', function(err) {
+//   if (!silent) console.log("Attempting to restart scraper");
+
+//   if (!silent) console.log("Aborting previous request");
+//   if (scrapeRequest) {
+//     scrapeRequest.abort();
+//   }
+
+//   scrapeListings();
+// });
 
 
 // --------------------------------------------------------------------
@@ -88,7 +107,7 @@ app.get("/posts", function(req, res) {
 });
 
 // Sentry
-// app.use(raven.middleware.express(ravenClient));
+app.use(raven.middleware.express(ravenClient));
 
 // Simple logger
 app.use(function(req, res, next){
@@ -98,10 +117,10 @@ app.use(function(req, res, next){
 });
 
 // Error handler
-app.use(errorHandler({
-  dumpExceptions: true,
-  showStack: true
-}));
+// app.use(errorHandler({
+//   dumpExceptions: true,
+//   showStack: true
+// }));
 
 // Open server on specified port
 if (!silent) console.log("Starting Express server");

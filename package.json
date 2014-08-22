@@ -22,6 +22,7 @@
     "express": "~4.8.5",
     "errorhandler": "~1.1.1",
     "body-parser": "~1.6.5",
-    "pusher": "~1.0.1"
+    "pusher": "~1.0.1",
+    "raven": "~0.7.0"
   }
 }
