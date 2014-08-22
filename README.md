@@ -11,7 +11,7 @@ Here is an overview of the API:
 - New posts are published to the `ph-posts` [channel]() using the `new-listing` [event]()
 - Posts are formatted using the Product Hunt API JSON structure (below)
 
-```
+```javascript
 {
   "id": 716119,
   "name": "Srvd",
@@ -54,7 +54,7 @@ The Realtime Product Hunt API has been built with simplicity in mind. All you ne
 
 [Here's an example](http://jsbin.com/sikel/2/edit?html,js,console) that uses JavaScript and outputs each new post to the browser console:
 
-```
+```html
 <!-- Include the Pusher JavaScript library -->
 <script src="http://js.pusher.com/2.2/pusher.min.js"></script>
 
