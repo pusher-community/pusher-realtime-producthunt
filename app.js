@@ -62,19 +62,19 @@ app.use(bodyParser.urlencoded({
 app.use(bodyParser.json());
 
 // Get stats for past 24 hours
-// app.get("/stats/24hours.json", function(req, res, next) {
-//   var output = {
-//     item: [
-//       {
-//         text: "Past 24 hours",
-//         value: stats.overall.past24.total
-//       },
-//       JSON.parse(JSON.stringify(stats.overall.past24.data)).reverse()
-//     ]
-//   };
+app.get("/stats/24hours.json", function(req, res, next) {
+  var output = {
+    item: [
+      {
+        text: "Past 24 hours",
+        value: stats.overall.past24.total
+      },
+      JSON.parse(JSON.stringify(stats.overall.past24.data)).reverse()
+    ]
+  };
 
-//   res.json(output);
-// });
+  res.json(output);
+});
 
 // Retrieve latest posts
 app.get("/posts", function(req, res) {
@@ -112,13 +112,14 @@ app.listen(process.env.PORT || 5001);
 // PRODUCT HUNT
 // --------------------------------------------------------------------
 
+var firstRun = true;
 var scrapeTimer;
 var scrapeRequest;
 var etag;
 var lastId;
 var previousListings = [];
 var previousListingsFull = [];
-var scrapeTimeout = 2000;
+var scrapeTimeout = 5000;
 
 var stats = {
   overall: {
@@ -219,7 +220,7 @@ var getNewListings = function(callback) {
   });
 };
 
-var scrapeListings = function() {
+var scrapeListings = function(firstRun) {
   if (!silent) console.log("------------------------------------------");
   if (!silent) console.log(new Date().toString());
   if (!silent) console.log("scrapeListings()");
@@ -265,8 +266,12 @@ var processListings = function(listings) {
         previousListingsFull.splice(199);
       }
 
-      if (!silent) console.log("Triggering message on Pusher");
-      pusher.trigger(["ph-posts"], "new-post", listing);
+      // Don't spam clients on first run
+      if (!firstRun) {
+        if (!silent) console.log("Triggering message on Pusher");
+        pusher.trigger(["ph-posts"], "new-post", listing);
+      }
+
       count++;
     }
   });
@@ -302,7 +307,11 @@ var processListings = function(listings) {
     stats.overall.past24.total += count;
   }
 
+  if (firstRun) {
+    firstRun = false;
+  }
+
   if (!silent) console.log(count + " new listings");
 };
 
-scrapeListings();
+scrapeListings(true);
