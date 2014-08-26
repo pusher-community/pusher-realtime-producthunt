@@ -1,7 +1,7 @@
 var _ = require("underscore");
 var request = require("request");
 
-var silent = false;
+var silent = true;
 
 var config;
 try {
