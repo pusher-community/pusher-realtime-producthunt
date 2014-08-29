@@ -12,7 +12,7 @@ You can see the API in action by [installing the Realtime Product Hunt Chrome ex
 
 Here is an overview of the API:
 
-- The Pusher application key for the realtime Reddit API is `7c1db8905b12d9aa6a03`
+- The Pusher application key for the Realtime Product Hunt API is `7c1db8905b12d9aa6a03`
 - New posts are published to the `ph-posts` [channel](http://pusher.com/docs/client_api_guide/client_channels) using the `new-post` [event](http://pusher.com/docs/client_api_guide/client_events)
 - Posts are formatted using the Product Hunt API JSON structure (below)
 
