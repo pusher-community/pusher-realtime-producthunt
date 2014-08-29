@@ -3,6 +3,11 @@
 [Pusher](http://pusher.com) Realtime Product Hunt API, allowing you to subscribe to a live feed of new posts.
 
 
+## Chrome extension
+
+You can see the API in action by [installing the Realtime Product Hunt Chrome extension](https://chrome.google.com/webstore/detail/realtime-product-hunt/cbcmhcjgmcclchcebjlfgpeedjcgjfib?hl=en&gl=GB).
+
+
 ## API overview
 
 Here is an overview of the API:
